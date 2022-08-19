@@ -1,0 +1,10 @@
+{
+  "@context" : "https://www.example.com/studentCard/v1",
+  "givenName": "Max",
+  "familyName": "Mustermann",
+  "matriculationNumber": "12345",
+  "address": {
+    "streetAddress" : "Technikumplatz 17",
+    "postalCode": "09648"
+  }
+}

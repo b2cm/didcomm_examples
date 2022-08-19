@@ -1,0 +1,26 @@
+name: issuer_backend
+description: A server app to issue credentials.
+version: 1.0.0
+# homepage: https://www.example.com
+
+environment:
+  sdk: '>=2.17.6 <3.0.0'
+
+dependencies:
+  args: ^2.0.0
+  shelf: ^1.1.0
+  shelf_router: ^1.0.0
+  dart_ssi:
+    git:
+      url: https://github.com/b2cm/dart_ssi
+      ref: didcomm
+  xmpp_stone: 0.4.1-dev.1
+  uuid: any
+  shelf_static: any
+  json_path: any
+  json_schema2: any
+
+dev_dependencies:
+  http: ^0.13.0
+  lints: ^2.0.0
+  test: ^1.15.0

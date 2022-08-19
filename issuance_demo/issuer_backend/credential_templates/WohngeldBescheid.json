@@ -1,0 +1,6 @@
+{
+  "@context" : "https://www.example.com/WohngeldBescheid/v1",
+  "givenName": "Max",
+  "familyName": "Mustermann",
+  "birthDate" : "23.09.1987"
+}
