@@ -97,8 +97,14 @@ Response _buildOobMessage(Request givenRequest, String type) {
   Map<String, dynamic> fileData = jsonDecode(file.readAsStringSync());
 
   var context = fileData.remove('@context');
-  var contextList = ['https://www.w3.org/2018/credentials/v1'];
-  if (context != null) contextList.add(context);
+  List<dynamic> contextList = ['https://www.w3.org/2018/credentials/v1'];
+  if (context != null) {
+    if (context is String) {
+      contextList.add(context);
+    } else {
+      contextList.addAll(context);
+    }
+  }
   fileData.remove('type');
   if (!fileData.containsKey('id')) {
     fileData['id'] = 'did:key:000';

@@ -1,5 +1,7 @@
 {
-"@context" : "https://www.example.com/driversLicense/v1",
+"@context" : ["https://schema.org",{"classes" : {
+  "@id": "https://myExample.org/driversLicenseClasses"
+} }],
 "givenName": "Max",
 "familyName": "Mustermann",
 "classes" : ["AM", "B", "L"]

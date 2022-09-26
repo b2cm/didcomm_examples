@@ -41,7 +41,8 @@ class ShowPresentation extends StatelessWidget {
               child: Column(
                 children: [
                       Text(
-                        vc.type.last,
+                        vc.type.firstWhere(
+                            (element) => element != 'VerifiableCredential'),
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),

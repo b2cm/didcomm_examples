@@ -1,5 +1,11 @@
 {
-  "@context" : "https://www.example.com/studentCard/v1",
+  "@context" : ["https://schema.org",
+    {
+      "matriculationNumber" :  {
+        "@id" :  "https://myExample.org/StudentCard/matriculationNumber"
+      }
+    }
+  ],
   "givenName": "Max",
   "familyName": "Mustermann",
   "matriculationNumber": "12345",
