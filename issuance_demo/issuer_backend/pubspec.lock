@@ -144,10 +144,10 @@ packages:
   dart_ssi:
     dependency: "direct main"
     description:
-      path: "../../../flutter_ssi_wallet"
-      relative: true
-    source: path
-    version: "1.0.0"
+      name: dart_ssi
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.3"
   ed25519_edwards:
     dependency: transitive
     description:

@@ -63,6 +63,8 @@ void main(List<String> args) async {
 
   issuerDid = wallet.getStandardIssuerDid(KeyType.ed25519)!;
 
+  print(wallet.getConfigEntry('certificate'));
+
   // initialize xmpp-connection (see init_xmpp.dart)
   var connection = init();
   xmppHandler = MessageHandler.getInstance(connection);
@@ -105,6 +107,9 @@ Response _buildOobMessage(Request givenRequest, String type) {
       contextList.addAll(context);
     }
   }
+  contextList.add({
+    'certificate': {'@id': 'https://x509.org/certificate'}
+  });
   fileData.remove('type');
   if (!fileData.containsKey('id')) {
     fileData['id'] = 'did:key:000';
@@ -119,6 +124,10 @@ Response _buildOobMessage(Request givenRequest, String type) {
       context: contextList,
       type: ['VerifiableCredential', type],
       issuer: issuerDid,
+      // issuer: {
+      //   'id': issuerDid,
+      //   'certificate': wallet.getConfigEntry('certificate')
+      // },
       credentialSubject: fileData,
       issuanceDate: DateTime.now());
 
@@ -130,13 +139,21 @@ Response _buildOobMessage(Request givenRequest, String type) {
     serviceHttp,
     serviceXmpp
   ]);
-
+  requestMessages[requestId] = offer;
   var oob = OutOfBandMessage(
       id: requestId,
       threadId: requestId,
       from: connectionDid,
-      replyTo: [serviceHttp, serviceXmpp],
-      attachments: [Attachment(data: AttachmentData(json: offer.toJson()))]);
+      replyTo: [
+        serviceHttp,
+        serviceXmpp
+      ],
+      attachments: [
+        Attachment(
+            data: AttachmentData(
+                links: ['http://localhost:8081/requestMessage/$requestId'],
+                hash: 'ghjdw'))
+      ]);
 
   return Response.ok(
       jsonEncode({'oob': oob.toUrl('http', 'wallet.de', ''), 'id': requestId}),
