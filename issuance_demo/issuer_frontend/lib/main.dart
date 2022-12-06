@@ -55,10 +55,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Credential-Auswahl'),
+        title: const Text('Credential-Auswahl'),
       ),
       body: Center(
         child: Wrap(
+            spacing: 15,
             children: List.generate(
                 typeList.length,
                 (index) => ElevatedButton(

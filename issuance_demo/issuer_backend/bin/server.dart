@@ -63,6 +63,11 @@ void main(List<String> args) async {
 
   issuerDid = wallet.getStandardIssuerDid(KeyType.ed25519)!;
 
+  var cert =
+      'MIICYDCCAgegAwIBAgICEjwwCgYIKoZIzj0EAwIwgZMxCzAJBgNVBAYTAkRFMRAwDgYDVQQIDAdTYWNoc2VuMRIwEAYDVQQHDAlNaXR0d2VpZGExHDAaBgNVBAoME0hvY2hzY2h1bGUgTWl0dGVpZGExFjAUBgNVBAMMDWNhLmVjLmhzbXcuZGUxKDAmBgkqhkiG9w0BCQEWGXNvbWVBZG1pbkBocy1taXR0d2VpZGEuZGUwHhcNMjIxMTI5MTEwNDAyWhcNMjMxMTI5MTEwNDAyWjCBnDELMAkGA1UEBhMCREUxEDAOBgNVBAgMB1NhY2hzZW4xEjAQBgNVBAcMCU1pdHR3ZWlkYTEkMCIGA1UECgwbRWlud29obmVybWVsZGVhbXQgTWl0dHdlaWRhMUEwPwYDVQQDDDhkaWQ6a2V5Ono2TWtlZEszSjlxREF2S3hHeUdmbTl1RGNkYU1EaGtBQVZjaHB2ekhIVFZjQndqZTAqMAUGAytlcAMhAAKTMcfgz5ftONCKjJCky8XEivX6Sp1idhCaHyW96wwBo28wbTAJBgNVHRMEAjAAMB0GA1UdDgQWBBS0cjpBDwhK+0emX21aCRQv6lQ8uDAfBgNVHSMEGDAWgBTIHdhmIYFWzJlq08atlIiFMzTqbTALBgNVHQ8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwCgYIKoZIzj0EAwIDRwAwRAIgKf2ExNyd3N9BFDlAo5u3pnPTlSaE8bsvGhzagm5UXQ4CIBctyENuAcb3msK9I/1Vp4FI1zQDZnLAViaySTDZJ/Xy';
+
+  await wallet.storeConfigEntry('certificate', cert);
+
   print(wallet.getConfigEntry('certificate'));
 
   // initialize xmpp-connection (see init_xmpp.dart)
@@ -123,11 +128,11 @@ Response _buildOobMessage(Request givenRequest, String type) {
   var vc = VerifiableCredential(
       context: contextList,
       type: ['VerifiableCredential', type],
-      issuer: issuerDid,
-      // issuer: {
-      //   'id': issuerDid,
-      //   'certificate': wallet.getConfigEntry('certificate')
-      // },
+      //issuer: issuerDid,
+      issuer: {
+        'id': issuerDid,
+        'certificate': wallet.getConfigEntry('certificate')
+      },
       credentialSubject: fileData,
       issuanceDate: DateTime.now());
 
@@ -139,6 +144,9 @@ Response _buildOobMessage(Request givenRequest, String type) {
     serviceHttp,
     serviceXmpp
   ]);
+  var f = File('example/offer1.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(offer.toString());
   requestMessages[requestId] = offer;
   var oob = OutOfBandMessage(
       id: requestId,
@@ -155,6 +163,9 @@ Response _buildOobMessage(Request givenRequest, String type) {
                 hash: 'ghjdw'))
       ]);
 
+  f = File('example/oob.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(oob.toString());
   return Response.ok(
       jsonEncode({'oob': oob.toUrl('http', 'wallet.de', ''), 'id': requestId}),
       headers: {'Content-Type': 'application/json'});

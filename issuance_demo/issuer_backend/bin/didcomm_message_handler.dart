@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
@@ -29,6 +31,9 @@ void handleDidcommMessage(String m) async {
 }
 
 void handleProposeCredential(ProposeCredential message) async {
+  var f = File('example/propose.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(message.toString());
   print('Received ProposeCredential: thread: ${message.threadId}');
   // it is expected that the wallet changes the did, the credential should be issued to
   var vcSubjectId = message.detail!.first.credential.credentialSubject['id'];
@@ -47,11 +52,19 @@ void handleProposeCredential(ProposeCredential message) async {
       to: [message.from!],
       replyTo: [serviceHttp, serviceXmpp]);
 
+  f = File('example/offer2.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(offer.toString());
+
   send(message.from!, offer, message.replyUrl!);
 }
 
 void handleRequestCredential(RequestCredential message) async {
   print('received RequestCredential, thread: ${message.threadId}');
+
+  var f = File('example/request.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(message.toString());
   var credential = message.detail!.first.credential;
   // sign the requested credential (normally we had to check before that, that the data in it is the same we offered)
   var signed = await signCredential(wallet, credential,
@@ -64,7 +77,9 @@ void handleRequestCredential(RequestCredential message) async {
       to: [message.from!],
       replyTo: [serviceHttp, serviceXmpp],
       credentials: [VerifiableCredential.fromJson(signed)]);
-
+  f = File('example/issue.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(issue.toString());
   send(message.from!, issue, message.replyUrl!);
 }
 
@@ -72,8 +87,17 @@ void send(String to, DidcommMessage message, String replyUrl) async {
   print('Send ${(message is DidcommPlaintextMessage) ? message.type : ''}');
 
   // get keys for recipient
-  var ddo =
-      (await resolveDidDocument(to)).convertAllKeysToJwk().resolveKeyIds();
+  var ddo = (await resolveDidDocument(to));
+
+  var f = File('example/ddo_short.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(ddo.toString());
+
+  ddo = ddo.convertAllKeysToJwk().resolveKeyIds();
+  f = File('example/ddo_long.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(ddo.toString());
+
   var myKey = await wallet.getPrivateKeyForConnectionDidAsJwk(connectionDid);
 
   // encrypt message
@@ -83,6 +107,10 @@ void send(String to, DidcommMessage message, String replyUrl) async {
         (ddo.keyAgreement!.first as VerificationMethod).publicKeyJwk!
       ],
       plaintext: message);
+
+  f = File('example/encrypted.json');
+  f.openSync(mode: FileMode.write);
+  f.writeAsStringSync(encrypted.toString());
 
   // send message over xmpp or http
   if (replyUrl.startsWith('xmpp')) {
