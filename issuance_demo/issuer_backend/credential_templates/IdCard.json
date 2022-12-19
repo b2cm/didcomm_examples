@@ -2,5 +2,6 @@
   "@context" : "https://schema.org",
   "givenName": "Max",
   "familyName": "Mustermann",
-  "birthDate" : "23.09.1987"
+  "birthDate" : "23.09.1987",
+  "address": {"streetAddress" :  "Am Schwanenteich 8", "addressLocality" :  "Mittweida", "postalCode" :  "09648"}
 }

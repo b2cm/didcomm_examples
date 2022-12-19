@@ -63,13 +63,6 @@ void main(List<String> args) async {
 
   issuerDid = wallet.getStandardIssuerDid(KeyType.ed25519)!;
 
-  var cert =
-      'MIICYDCCAgegAwIBAgICEjwwCgYIKoZIzj0EAwIwgZMxCzAJBgNVBAYTAkRFMRAwDgYDVQQIDAdTYWNoc2VuMRIwEAYDVQQHDAlNaXR0d2VpZGExHDAaBgNVBAoME0hvY2hzY2h1bGUgTWl0dGVpZGExFjAUBgNVBAMMDWNhLmVjLmhzbXcuZGUxKDAmBgkqhkiG9w0BCQEWGXNvbWVBZG1pbkBocy1taXR0d2VpZGEuZGUwHhcNMjIxMTI5MTEwNDAyWhcNMjMxMTI5MTEwNDAyWjCBnDELMAkGA1UEBhMCREUxEDAOBgNVBAgMB1NhY2hzZW4xEjAQBgNVBAcMCU1pdHR3ZWlkYTEkMCIGA1UECgwbRWlud29obmVybWVsZGVhbXQgTWl0dHdlaWRhMUEwPwYDVQQDDDhkaWQ6a2V5Ono2TWtlZEszSjlxREF2S3hHeUdmbTl1RGNkYU1EaGtBQVZjaHB2ekhIVFZjQndqZTAqMAUGAytlcAMhAAKTMcfgz5ftONCKjJCky8XEivX6Sp1idhCaHyW96wwBo28wbTAJBgNVHRMEAjAAMB0GA1UdDgQWBBS0cjpBDwhK+0emX21aCRQv6lQ8uDAfBgNVHSMEGDAWgBTIHdhmIYFWzJlq08atlIiFMzTqbTALBgNVHQ8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwCgYIKoZIzj0EAwIDRwAwRAIgKf2ExNyd3N9BFDlAo5u3pnPTlSaE8bsvGhzagm5UXQ4CIBctyENuAcb3msK9I/1Vp4FI1zQDZnLAViaySTDZJ/Xy';
-
-  await wallet.storeConfigEntry('certificate', cert);
-
-  print(wallet.getConfigEntry('certificate'));
-
   // initialize xmpp-connection (see init_xmpp.dart)
   var connection = init();
   xmppHandler = MessageHandler.getInstance(connection);
@@ -112,9 +105,6 @@ Response _buildOobMessage(Request givenRequest, String type) {
       contextList.addAll(context);
     }
   }
-  contextList.add({
-    'certificate': {'@id': 'https://x509.org/certificate'}
-  });
   fileData.remove('type');
   if (!fileData.containsKey('id')) {
     fileData['id'] = 'did:key:000';
@@ -128,11 +118,7 @@ Response _buildOobMessage(Request givenRequest, String type) {
   var vc = VerifiableCredential(
       context: contextList,
       type: ['VerifiableCredential', type],
-      //issuer: issuerDid,
-      issuer: {
-        'id': issuerDid,
-        'certificate': wallet.getConfigEntry('certificate')
-      },
+      issuer: issuerDid,
       credentialSubject: fileData,
       issuanceDate: DateTime.now());
 
@@ -163,9 +149,6 @@ Response _buildOobMessage(Request givenRequest, String type) {
                 hash: 'ghjdw'))
       ]);
 
-  f = File('example/oob.json');
-  f.openSync(mode: FileMode.write);
-  f.writeAsStringSync(oob.toString());
   return Response.ok(
       jsonEncode({'oob': oob.toUrl('http', 'wallet.de', ''), 'id': requestId}),
       headers: {'Content-Type': 'application/json'});

@@ -10,7 +10,7 @@ dependencies:
   args: ^2.0.0
   shelf: ^1.1.0
   shelf_router: ^1.0.0
-  dart_ssi: ^1.0.3
+  dart_ssi: ^1.0.5
   xmpp_stone: 0.4.1-dev.1
   uuid: any
   shelf_static: any

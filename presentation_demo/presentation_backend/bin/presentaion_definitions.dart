@@ -183,3 +183,45 @@ var alter = PresentationDefinition(inputDescriptors: [
             }))
       ]))
 ]);
+
+var self = PresentationDefinition(inputDescriptors: [
+  InputDescriptor(
+      group: ['A'],
+      constraints: InputDescriptorConstraints(
+          subjectIsIssuer: Limiting.required,
+          fields: [
+            InputDescriptorField(
+                path: [JsonPath(r'$.credentialSubject')],
+                filter: JsonSchema.createSchema({
+                  'type': 'object',
+                  'properties': {
+                    'givenName': {'type': 'string', 'title': 'Vorname'},
+                    'familyName': {'type': 'string', 'title': 'Nachname'},
+                    'age': {'type': 'integer', 'title': 'Alter'}
+                  },
+                  'required': ['givenName', 'familyName', 'age']
+                }))
+          ])),
+  InputDescriptor(
+      group: ['A'],
+      constraints: InputDescriptorConstraints(
+          subjectIsIssuer: Limiting.required,
+          fields: [
+            InputDescriptorField(
+                path: [JsonPath(r'$.credentialSubject')],
+                filter: JsonSchema.createSchema({
+                  'type': 'object',
+                  'properties': {
+                    'givenName': {'type': 'string', 'title': 'Vorname'},
+                    'familyName': {'type': 'string', 'title': 'Nachname'},
+                    'age': {'type': 'integer', 'title': 'Alter'}
+                  },
+                  'required': ['givenName', 'familyName', 'age']
+                }))
+          ]))
+], submissionRequirement: [
+  SubmissionRequirement(
+      rule: SubmissionRequirementRule.all,
+      from: 'A',
+      name: 'Ermäßigungsberechtigung')
+]);
