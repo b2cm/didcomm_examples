@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/did.dart';
 import 'package:dart_ssi/didcomm.dart';
@@ -31,9 +29,6 @@ void handleDidcommMessage(String m) async {
 }
 
 void handleProposeCredential(ProposeCredential message) async {
-  var f = File('example/propose.json');
-  f.openSync(mode: FileMode.write);
-  f.writeAsStringSync(message.toString());
   print('Received ProposeCredential: thread: ${message.threadId}');
   // it is expected that the wallet changes the did, the credential should be issued to
   var vcSubjectId = message.detail!.first.credential.credentialSubject['id'];
@@ -51,10 +46,6 @@ void handleProposeCredential(ProposeCredential message) async {
       from: connectionDid,
       to: [message.from!],
       replyTo: [serviceHttp, serviceXmpp]);
-
-  f = File('example/offer2.json');
-  f.openSync(mode: FileMode.write);
-  f.writeAsStringSync(offer.toString());
 
   send(message.from!, offer, message.replyUrl!);
 }

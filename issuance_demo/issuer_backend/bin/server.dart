@@ -130,9 +130,7 @@ Response _buildOobMessage(Request givenRequest, String type) {
     serviceHttp,
     serviceXmpp
   ]);
-  var f = File('example/offer1.json');
-  f.openSync(mode: FileMode.write);
-  f.writeAsStringSync(offer.toString());
+
   requestMessages[requestId] = offer;
   var oob = OutOfBandMessage(
       id: requestId,
