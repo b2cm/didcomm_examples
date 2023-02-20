@@ -10,12 +10,14 @@ dependencies:
   args: ^2.0.0
   shelf: ^1.1.0
   shelf_router: ^1.0.0
-  dart_ssi: ^1.0.5
+  dart_ssi: 2.0.1
   xmpp_stone: 0.4.1-dev.1
   uuid: any
   shelf_static: any
   json_path: any
   json_schema2: any
+  crypto:  any
+  dart_multihash: any
 
 dev_dependencies:
   http: ^0.13.0

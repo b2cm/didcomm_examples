@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:issuer_frontend/main.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class QrRenderer extends StatefulWidget {
   final String oobUrl;
@@ -43,10 +44,20 @@ class _QrRendererState extends State<QrRenderer> {
       body: Center(
         child: finished
             ? const Text('Credential erfolgreich ausgestellt')
-            : QrImage(
-                data: widget.oobUrl,
-                version: QrVersions.auto,
-              ),
+            : Column(children: [
+                QrImage(
+                  data: widget.oobUrl,
+                  version: QrVersions.auto,
+                  size: 600,
+                ),
+                ElevatedButton(
+                    onPressed: () async {
+                      if (!await launchUrlString(widget.oobUrl)) {
+                        throw Exception('Could not launch ${widget.oobUrl}');
+                      }
+                    },
+                    child: const Text('Id-Ideal Wallet öffnen'))
+              ]),
       ),
       persistentFooterButtons: [
         TextButton(

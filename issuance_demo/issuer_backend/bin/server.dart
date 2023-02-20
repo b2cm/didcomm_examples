@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
+import 'package:dart_multihash/dart_multihash.dart' as multihash;
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/wallet.dart';
@@ -11,7 +14,7 @@ import 'package:shelf_static/shelf_static.dart';
 import 'package:uuid/uuid.dart';
 import 'package:xmpp_stone/xmpp_stone.dart';
 
-import 'didcomm_message_handler.dart';
+import 'didcomm_message_handler.dart' as l;
 import 'init_xmpp.dart';
 
 // Configure routes.
@@ -91,6 +94,7 @@ void main(List<String> args) async {
 }
 
 Response _buildOobMessage(Request givenRequest, String type) {
+  print(givenRequest.headers);
   var oobId = Uuid().v4();
   var requestId = Uuid().v4();
   var file = File('credential_templates${Platform.pathSeparator}$type.json');
@@ -132,6 +136,9 @@ Response _buildOobMessage(Request givenRequest, String type) {
   ]);
 
   requestMessages[requestId] = offer;
+
+  var hash = sha256.convert(utf8.encode(jsonEncode(offer)));
+
   var oob = OutOfBandMessage(
       id: requestId,
       threadId: requestId,
@@ -144,11 +151,15 @@ Response _buildOobMessage(Request givenRequest, String type) {
         Attachment(
             data: AttachmentData(
                 links: ['http://localhost:8081/requestMessage/$requestId'],
-                hash: 'ghjdw'))
+                hash: base64Encode(multihash.Multihash.encode(
+                    'sha2-256', Uint8List.fromList(hash.bytes)))))
       ]);
 
   return Response.ok(
-      jsonEncode({'oob': oob.toUrl('http', 'wallet.de', ''), 'id': requestId}),
+      jsonEncode({
+        'oob': oob.toUrl('https', 'wallet.id-ideal.de', ''),
+        'id': requestId
+      }),
       headers: {'Content-Type': 'application/json'});
 }
 
@@ -161,7 +172,7 @@ Response _getOfferMessage(Request request, String messageId) {
 }
 
 Future<Response> _receivePresentation(Request request) async {
-  handleDidcommMessage(await request.readAsString());
+  l.handleDidcommMessage(await request.readAsString());
   return Response.ok('');
 }
 

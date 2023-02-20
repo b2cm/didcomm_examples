@@ -21,10 +21,9 @@ void handleDidcommMessage(String m) async {
       'https://didcomm.org/issue-credential/3.0/request-credential') {
     handleRequestCredential(RequestCredential.fromJson(plain.toJson()));
   } else if (plain.type == 'https://didcomm.org/empty/1.0') {
-    if (plain.ack != null) {
-      running.remove(plain.threadId);
-      print('this is an ack for ${plain.ack}, thread: ${plain.threadId}');
-    }
+    print('Empty message: $plain');
+    running.remove(plain.threadId);
+    print('this is an ack for ${plain.ack}, thread: ${plain.threadId}');
   }
 }
 
