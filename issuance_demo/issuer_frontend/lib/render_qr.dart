@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:issuer_frontend/main.dart';
@@ -19,10 +20,16 @@ class QrRenderer extends StatefulWidget {
 class _QrRendererState extends State<QrRenderer> {
   late Timer t;
   bool finished = false;
+  bool isMobile = false;
 
   @override
   void initState() {
     super.initState();
+
+    isMobile = kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
+
     print('init timer');
     t = Timer.periodic(const Duration(seconds: 5), (timer) async {
       var answer = await get(Uri.parse(
@@ -42,23 +49,22 @@ class _QrRendererState extends State<QrRenderer> {
         title: const Text('Ausstellen'),
       ),
       body: Center(
-        child: finished
-            ? const Text('Credential erfolgreich ausgestellt')
-            : Column(children: [
-                QrImage(
-                  data: widget.oobUrl,
-                  version: QrVersions.auto,
-                  size: 600,
-                ),
-                ElevatedButton(
-                    onPressed: () async {
-                      if (!await launchUrlString(widget.oobUrl)) {
-                        throw Exception('Could not launch ${widget.oobUrl}');
-                      }
-                    },
-                    child: const Text('Id-Ideal Wallet öffnen'))
-              ]),
-      ),
+          child: finished
+              ? const Text('Credential erfolgreich ausgestellt')
+              : isMobile
+                  ? ElevatedButton(
+                      onPressed: () async {
+                        var launched = await launchUrlString(widget.oobUrl);
+                        if (!launched) {
+                          throw Exception('Could not launch ${widget.oobUrl}');
+                        }
+                      },
+                      child: const Text('Id-Ideal Wallet öffnen'))
+                  : QrImage(
+                      data: widget.oobUrl,
+                      version: QrVersions.auto,
+                      size: 600,
+                    )),
       persistentFooterButtons: [
         TextButton(
             onPressed: () {

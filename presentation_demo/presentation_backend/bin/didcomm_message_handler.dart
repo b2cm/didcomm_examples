@@ -7,7 +7,7 @@ import 'package:xmpp_stone/xmpp_stone.dart';
 
 import 'server.dart';
 
-void handleDidcommMessage(String m) async {
+Future<DidcommMessage?> handleDidcommMessage(String m) async {
   // For now, we only expect encrypted messages
   var encrypted = DidcommEncryptedMessage.fromJson(m);
   // Therefore decrypt them
@@ -15,67 +15,17 @@ void handleDidcommMessage(String m) async {
   if (plain is! DidcommPlaintextMessage) throw Exception('Unexpected message');
 
   // handle the messages according to their type
-  if (plain.type ==
-      'https://didcomm.org/issue-credential/3.0/propose-credential') {
-    handleProposeCredential(ProposeCredential.fromJson(plain.toJson()));
-  } else if (plain.type ==
-      'https://didcomm.org/issue-credential/3.0/request-credential') {
-    handleRequestCredential(RequestCredential.fromJson(plain.toJson()));
-  } else if (plain.type == 'https://didcomm.org/reserved/2.0/empty') {
-    if (plain.ack != null) {
-      print('this is an ack for ${plain.ack}');
-    }
-  }
-
-  // !!!The important part!!!rest is copy paste
-  else if (plain.type == 'https://didcomm.org/present-proof/3.0/presentation') {
-    handlePresentation(Presentation.fromJson(plain.toJson()));
-  } else if (plain.type == DidcommMessages.discoverFeatureDisclose.value) {
-    handleDiscoverFeature(DiscloseMessage.fromJson(plain.toJson()));
+  if (plain.type == 'https://didcomm.org/present-proof/3.0/presentation') {
+    return handlePresentation(Presentation.fromJson(plain.toJson()));
+  } else if (plain.type == DidcommMessages.discoverFeatureDisclose) {
+    return handleDiscoverFeature(DiscloseMessage.fromJson(plain.toJson()));
+  } else {
+    return null;
   }
 }
 
-void handleProposeCredential(ProposeCredential message) async {
-  print('Received ProposeCredential');
-  // it is expected that the wallet changes the did, the credential should be issued to
-  var vcSubjectId = message.detail!.first.credential.credentialSubject['id'];
-  for (var a in message.attachments!) {
-    // to check, if the wallet controls the did it is expected to sign the attachment
-    if (!(await a.data.verifyJws(vcSubjectId))) {
-      throw Exception('not verifiable');
-    }
-  }
-
-  // answer with offer credential message
-  var offer = OfferCredential(
-      threadId: message.threadId ?? message.id,
-      detail: message.detail,
-      from: connectionDid,
-      to: [message.from!],
-      replyTo: [serviceHttp, serviceXmpp]);
-
-  send(message.from!, offer, message.replyUrl!);
-}
-
-void handleRequestCredential(RequestCredential message) async {
-  print('received RequestCredential');
-  var credential = message.detail!.first.credential;
-  // sign the requested credential (normally we had to check before that, that the data in it is the same we offered)
-  var signed = await signCredential(wallet, credential,
-      challenge: message.detail!.first.options.challenge);
-
-  // issue the credential
-  var issue = IssueCredential(
-      threadId: message.threadId ?? message.id,
-      from: connectionDid,
-      to: [message.from!],
-      replyTo: [serviceXmpp, serviceHttp],
-      credentials: [VerifiableCredential.fromJson(signed)]);
-
-  send(message.from!, issue, message.replyUrl!);
-}
-
-void send(String to, DidcommMessage message, String replyUrl) async {
+Future<DidcommMessage> send(
+    String to, DidcommMessage message, String? replyUrl) async {
   print('Send ${(message is DidcommPlaintextMessage) ? message.type : ''}');
 
   // get keys for recipient
@@ -92,15 +42,19 @@ void send(String to, DidcommMessage message, String replyUrl) async {
       plaintext: message);
 
   // send message over xmpp
-  if (replyUrl.startsWith('xmpp')) {
-    xmppHandler.sendMessage(
-        Jid.fromFullJid('testuser@localhost'), encrypted.toString());
-  } else if (replyUrl.startsWith('http')) {
-    post(Uri.parse(replyUrl), body: encrypted.toString());
+  if (replyUrl != null) {
+    if (replyUrl.startsWith('xmpp')) {
+      xmppHandler.sendMessage(
+          Jid.fromFullJid('testuser@localhost'), encrypted.toString());
+    } else if (replyUrl.startsWith('http')) {
+      post(Uri.parse(replyUrl), body: encrypted.toString());
+    }
   }
+
+  return encrypted;
 }
 
-void handlePresentation(Presentation message) async {
+Future<DidcommMessage?> handlePresentation(Presentation message) async {
   var vp = message.verifiablePresentation.first;
   print(message.threadId);
   var request = requestMessages[message.threadId];
@@ -110,13 +64,27 @@ void handlePresentation(Presentation message) async {
       var verified = await verifyPresentation(vp, challenge);
       print(verified);
       presentations[message.threadId!] = {'presentation': vp.toJson()};
+
+      return send(
+          message.from!,
+          EmptyMessage(
+              threadId: message.threadId ?? message.id,
+              from: connectionDid,
+              to: [message.from!],
+              ack: [message.id]),
+          message.returnRoute == null ||
+                  message.returnRoute == ReturnRouteValue.none
+              ? determineReplyUrl(message.replyUrl, message.replyTo)
+              : null);
     } catch (e) {
       print(e);
     }
   }
+
+  return null;
 }
 
-void handleDiscoverFeature(DiscloseMessage message) {
+Future<DidcommMessage>? handleDiscoverFeature(DiscloseMessage message) {
   print(message.disclosures);
   var requestId = message.threadId!;
   var type = typeMapping[requestId];
@@ -139,7 +107,13 @@ void handleDiscoverFeature(DiscloseMessage message) {
 
     requestMessages[requestId] = request;
 
-    send(message.from!, request, message.replyUrl!);
+    return send(
+        message.from!,
+        request,
+        message.returnRoute == null ||
+                message.returnRoute == ReturnRouteValue.none
+            ? determineReplyUrl(message.replyUrl, message.replyTo)
+            : null);
   } else {
     presentations[requestId] = {'typeList': credentialLists[type]};
     otherPartyInfo[requestId] = {
@@ -147,4 +121,20 @@ void handleDiscoverFeature(DiscloseMessage message) {
       'replyUrl': message.replyUrl
     };
   }
+
+  return null;
+}
+
+String? determineReplyUrl(String? replyUrl, List<String>? replyTo) {
+  if (replyUrl != null) {
+    return replyUrl;
+  } else {
+    if (replyTo == null) {
+      return null;
+    }
+    for (var url in replyTo) {
+      if (url.startsWith('http')) return url;
+    }
+  }
+  return null;
 }

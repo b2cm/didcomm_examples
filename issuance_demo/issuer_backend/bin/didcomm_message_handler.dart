@@ -6,7 +6,7 @@ import 'package:xmpp_stone/xmpp_stone.dart';
 
 import 'server.dart';
 
-void handleDidcommMessage(String m) async {
+Future<DidcommMessage> handleDidcommMessage(String m) async {
   // For now, we only expect encrypted messages
   var encrypted = DidcommEncryptedMessage.fromJson(m);
   // Therefore decrypt them
@@ -16,18 +16,40 @@ void handleDidcommMessage(String m) async {
   // handle the messages according to their type
   if (plain.type ==
       'https://didcomm.org/issue-credential/3.0/propose-credential') {
-    handleProposeCredential(ProposeCredential.fromJson(plain.toJson()));
+    return handleProposeCredential(ProposeCredential.fromJson(plain.toJson()));
   } else if (plain.type ==
       'https://didcomm.org/issue-credential/3.0/request-credential') {
-    handleRequestCredential(RequestCredential.fromJson(plain.toJson()));
+    return handleRequestCredential(RequestCredential.fromJson(plain.toJson()));
   } else if (plain.type == 'https://didcomm.org/empty/1.0') {
     print('Empty message: $plain');
     running.remove(plain.threadId);
     print('this is an ack for ${plain.ack}, thread: ${plain.threadId}');
+    return send(
+        plain.from!,
+        EmptyMessage(
+            threadId: plain.threadId ?? plain.id,
+            from: connectionDid,
+            to: [plain.from!],
+            ack: [plain.id]),
+        plain.returnRoute == null || plain.returnRoute == ReturnRouteValue.none
+            ? determineReplyUrl(plain.replyUrl, plain.replyTo)
+            : null);
+  } else {
+    return send(
+        plain.from!,
+        EmptyMessage(
+            threadId: plain.threadId ?? plain.id,
+            from: connectionDid,
+            ack: [plain.id],
+            to: [plain.from!]),
+        plain.returnRoute == null || plain.returnRoute == ReturnRouteValue.none
+            ? determineReplyUrl(plain.replyUrl, plain.replyTo)
+            : null);
   }
 }
 
-void handleProposeCredential(ProposeCredential message) async {
+Future<DidcommMessage> handleProposeCredential(
+    ProposeCredential message) async {
   print('Received ProposeCredential: thread: ${message.threadId}');
   // it is expected that the wallet changes the did, the credential should be issued to
   var vcSubjectId = message.detail!.first.credential.credentialSubject['id'];
@@ -46,10 +68,17 @@ void handleProposeCredential(ProposeCredential message) async {
       to: [message.from!],
       replyTo: [serviceHttp, serviceXmpp]);
 
-  send(message.from!, offer, message.replyUrl!);
+  return send(
+      message.from!,
+      offer,
+      message.returnRoute == null ||
+              message.returnRoute == ReturnRouteValue.none
+          ? determineReplyUrl(message.replyUrl, message.replyTo)
+          : null);
 }
 
-void handleRequestCredential(RequestCredential message) async {
+Future<DidcommMessage> handleRequestCredential(
+    RequestCredential message) async {
   print('received RequestCredential, thread: ${message.threadId}');
 
   var credential = message.detail!.first.credential;
@@ -65,10 +94,17 @@ void handleRequestCredential(RequestCredential message) async {
       replyTo: [serviceHttp, serviceXmpp],
       credentials: [VerifiableCredential.fromJson(signed)]);
 
-  send(message.from!, issue, message.replyUrl!);
+  return send(
+      message.from!,
+      issue,
+      message.returnRoute == null ||
+              message.returnRoute == ReturnRouteValue.none
+          ? determineReplyUrl(message.replyUrl, message.replyTo)
+          : null);
 }
 
-void send(String to, DidcommMessage message, String replyUrl) async {
+Future<DidcommMessage> send(
+    String to, DidcommMessage message, String? replyUrl) async {
   print('Send ${(message is DidcommPlaintextMessage) ? message.type : ''}');
 
   // get keys for recipient
@@ -87,10 +123,28 @@ void send(String to, DidcommMessage message, String replyUrl) async {
       plaintext: message);
 
   // send message over xmpp or http
-  if (replyUrl.startsWith('xmpp')) {
-    xmppHandler.sendMessage(
-        Jid.fromFullJid('testuser@localhost'), encrypted.toString());
-  } else if (replyUrl.startsWith('http')) {
-    post(Uri.parse(replyUrl), body: encrypted.toString());
+  if (replyUrl != null) {
+    if (replyUrl.startsWith('xmpp')) {
+      xmppHandler.sendMessage(
+          Jid.fromFullJid('testuser@localhost'), encrypted.toString());
+    } else if (replyUrl.startsWith('http')) {
+      post(Uri.parse(replyUrl), body: encrypted.toString());
+    }
   }
+
+  return encrypted;
+}
+
+String? determineReplyUrl(String? replyUrl, List<String>? replyTo) {
+  if (replyUrl != null) {
+    return replyUrl;
+  } else {
+    if (replyTo == null) {
+      return null;
+    }
+    for (var url in replyTo) {
+      if (url.startsWith('http')) return url;
+    }
+  }
+  return null;
 }

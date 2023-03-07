@@ -15,7 +15,7 @@ var dresdenPass = PresentationDefinition(inputDescriptors: [
             }))
       ])),
   InputDescriptor(
-      purpose: 'Berechtigung DresdenPass - WohngeldBescheid',
+      purpose: 'Berechtigung DresdenPass - Wohngeld-Bescheid',
       group: ['A'],
       constraints: InputDescriptorConstraints(fields: [
         InputDescriptorField(
@@ -202,23 +202,6 @@ var self = PresentationDefinition(inputDescriptors: [
                   'required': ['givenName', 'familyName', 'age']
                 }))
           ])),
-  InputDescriptor(
-      group: ['A'],
-      constraints: InputDescriptorConstraints(
-          subjectIsIssuer: Limiting.required,
-          fields: [
-            InputDescriptorField(
-                path: [JsonPath(r'$.credentialSubject')],
-                filter: JsonSchema.createSchema({
-                  'type': 'object',
-                  'properties': {
-                    'givenName': {'type': 'string', 'title': 'Vorname'},
-                    'familyName': {'type': 'string', 'title': 'Nachname'},
-                    'age': {'type': 'integer', 'title': 'Alter'}
-                  },
-                  'required': ['givenName', 'familyName', 'age']
-                }))
-          ]))
 ], submissionRequirement: [
   SubmissionRequirement(
       rule: SubmissionRequirementRule.all,

@@ -126,14 +126,16 @@ Response _buildOobMessage(Request givenRequest, String type) {
       credentialSubject: fileData,
       issuanceDate: DateTime.now());
 
-  var offer = OfferCredential(id: requestId, threadId: requestId, detail: [
-    LdProofVcDetail(
-        credential: vc,
-        options: LdProofVcDetailOptions(proofType: 'Ed25519Signature'))
-  ], replyTo: [
-    serviceHttp,
-    serviceXmpp
-  ]);
+  var offer = OfferCredential(
+      id: requestId,
+      threadId: requestId,
+      detail: [
+        LdProofVcDetail(
+            credential: vc,
+            options: LdProofVcDetailOptions(proofType: 'Ed25519Signature'))
+      ],
+      replyTo: [serviceHttp, serviceXmpp],
+      returnRoute: ReturnRouteValue.thread);
 
   requestMessages[requestId] = offer;
 
@@ -172,8 +174,9 @@ Response _getOfferMessage(Request request, String messageId) {
 }
 
 Future<Response> _receivePresentation(Request request) async {
-  l.handleDidcommMessage(await request.readAsString());
-  return Response.ok('');
+  var m = await l.handleDidcommMessage(await request.readAsString());
+  return Response.ok(m.toString(),
+      headers: {'Content-Type': 'application/didcomm-encrypted+json'});
 }
 
 Response _getTypeList(Request request) {

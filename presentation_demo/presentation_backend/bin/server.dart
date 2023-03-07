@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
+import 'package:dart_multihash/dart_multihash.dart' as multihash;
 import 'package:dart_ssi/credentials.dart';
 import 'package:dart_ssi/didcomm.dart';
 import 'package:dart_ssi/wallet.dart';
@@ -11,7 +14,7 @@ import 'package:shelf_static/shelf_static.dart';
 import 'package:uuid/uuid.dart';
 import 'package:xmpp_stone/xmpp_stone.dart';
 
-import 'didcomm_message_handler.dart';
+import 'didcomm_message_handler.dart' as l;
 import 'init_xmpp.dart';
 import 'presentaion_definitions.dart';
 
@@ -65,7 +68,8 @@ final Map<String, PresentationDefinition> definitions = {
   'Kinderzuschlag': kinderzuschlag,
   'Altersgrundsicherung': alter,
   'Jugendhilfe': jugend,
-  'Asylleistungen': asyl
+  'Asylleistungen': asyl,
+  'self': self
 };
 
 Map<String, Map<String, dynamic>> presentations = {};
@@ -113,7 +117,7 @@ Response _askForFeature(Request request, String type) {
   ], queries: [
     Query(
         featureType: FeatureType.attachmentFormat,
-        match: AttachmentFormat.presentationDefinition2.value)
+        match: AttachmentFormat.presentationDefinition2)
   ]);
   requestMessages[requestId] = query;
   typeMapping[requestId] = type;
@@ -155,11 +159,14 @@ Response _buildOobMessage(Request givenRequest, String type) {
 
   requestMessages[requestId] = request;
 
+  var hash = sha256.convert(utf8.encode(jsonEncode(request)));
+
   var oob = OutOfBandMessage(id: oobId, from: connectionDid, attachments: [
     Attachment(
         data: AttachmentData(
             links: ['$serverUrl:$port/requestMessage/$requestId'],
-            hash: 'ghwef'))
+            hash: base64Encode(multihash.Multihash.encode(
+                'sha2-256', Uint8List.fromList(hash.bytes)))))
   ], replyTo: [
     serviceHttp,
     serviceXmpp
@@ -188,8 +195,13 @@ Response _getPresentation(Request request, String id) {
 }
 
 Future<Response> _receivePresentation(Request request) async {
-  handleDidcommMessage(await request.readAsString());
-  return Response.ok('');
+  var m = await l.handleDidcommMessage(await request.readAsString());
+  if (m != null) {
+    return Response.ok(m.toString(),
+        headers: {'Content-Type': 'application/didcomm-encrypted+json'});
+  } else {
+    return Response.internalServerError();
+  }
 }
 
 Response _handleType(Request request, String requestId, String type) {
@@ -214,6 +226,6 @@ Response _handleType(Request request, String requestId, String type) {
   requestMessages[requestId] = request;
 
   var other = otherPartyInfo[requestId];
-  send(other!['to']!, request, other['replyUrl']!);
+  l.send(other!['to']!, request, other['replyUrl']!);
   return Response.ok('');
 }
